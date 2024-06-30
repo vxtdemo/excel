@@ -4,6 +4,8 @@
 <script>
   function mydiv_click()
     {
-      document.getElementById('mydiv').innerText = 'This div is clicked. Serving by GitHub';
+      var newDate = new Date();
+      var vxDateTime = "VX current date time is: " + newDate.today() + " @ " + newDate.timeNow();
+      document.getElementById('mydiv').innerText = 'This div is clicked. Serving by GitHub. ' + vxDateTime;
     }
 </script>
