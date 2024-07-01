@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/excel/static/css/main.e6c13ad2.css",
+    "main.js": "/excel/static/js/main.f34e04f7.js",
+    "static/js/453.329b4e33.chunk.js": "/excel/static/js/453.329b4e33.chunk.js",
+    "index.html": "/excel/index.html",
+    "main.e6c13ad2.css.map": "/excel/static/css/main.e6c13ad2.css.map",
+    "main.f34e04f7.js.map": "/excel/static/js/main.f34e04f7.js.map",
+    "453.329b4e33.chunk.js.map": "/excel/static/js/453.329b4e33.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.f34e04f7.js"
+  ]
+}
