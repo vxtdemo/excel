@@ -38,7 +38,7 @@ const App = () => {
                     }
                 }
             } catch (error) {
-                console.error("V5. Error during MSAL initialization: ", error);
+                console.error("VX. Error during MSAL initialization: ", error);
             }
         };
         initializeMsal();
@@ -69,6 +69,54 @@ const App = () => {
         setFolders([]);
     };
 
+
+    const fetchAllItems = async (client, folderId) => {
+        let items = [];
+        let response = await client.api(`/me/drive/items/${folderId}/children`).get();
+        items = items.concat(response.value);
+    
+        while (response['@odata.nextLink']) {
+            response = await client.api(response['@odata.nextLink']).get();
+            items = items.concat(response.value);
+        }
+    
+        return items;
+    };
+    
+    const fetchFolderPermissions = async (client, folderId) => {
+        try {
+            const permissionsResponse = await client.api(`/me/drive/items/${folderId}/permissions`).get();
+            return permissionsResponse.value;
+        } catch (error) {
+            console.error("Error fetching folder permissions: ", error);
+            return [];
+        }
+    };
+    
+    const getTotalFolderSize = async (client, folderId) => {
+        try {
+            const items = await fetchAllItems(client, folderId);
+            let totalSize = 0;
+    
+            for (const item of items) {
+                if (item.folder) {
+                    totalSize += await getTotalFolderSize(client, item.id);
+                } else {
+                    totalSize += item.size;
+                }
+            }
+    
+            if (items.length > 200) {
+                console.warn(`Folder with ID ${folderId} contains more than 200 items. Total size may not be accurate.`);
+            }
+    
+            return totalSize;
+        } catch (error) {
+            console.error("Error calculating folder size: ", error);
+            return 0;
+        }
+    };
+    
     const fetchOneDriveFolders = async () => {
         try {
             const account = msalInstance.getActiveAccount();
@@ -90,8 +138,24 @@ const App = () => {
                 }
             });
 
-            const response = await client.api('/me/drive/root/children').get();
-            setFolders(response.value);
+            // const response = await client.api('/me/drive/root/children').get();
+            // setFolders(response.value);
+
+            // Fetch both owned and shared items
+            const driveResponse = await client.api('/me/drive/root/children').get();
+            const sharedResponse = await client.api('/me/drive/sharedWithMe').get();
+
+            const combinedFolders = [...driveResponse.value, ...sharedResponse.value];
+        
+            // Fetch size and type of folders
+            for (const folder of combinedFolders) {
+                folder.type = folder.remoteItem ? 'Shared' : 'Owned';
+                folder.size = await getTotalFolderSize(client, folder.id);
+                folder.permissions = await fetchFolderPermissions(client, folder.id);
+            }
+    
+            combinedFolders.sort((a, b) => a.name.localeCompare(b.name));
+            setFolders(combinedFolders);
         } catch (error) {
             console.error("Error fetching OneDrive folders: ", error);
         }
@@ -99,7 +163,7 @@ const App = () => {
 
     return (
         <div>
-            <h1>MSAL React App v6</h1>
+            <h1>MSAL React App v12 w permissions (in GHP)</h1>
             {!isAuthenticated ? (
                 <button onClick={login}>Login with Microsoft</button>
             ) : (
@@ -109,7 +173,20 @@ const App = () => {
                     <h3>OneDrive Folders:</h3>
                     <ul>
                         {folders.map(folder => (
-                            <li key={folder.id}>{folder.name}</li>
+                            <li key={folder.id}>
+                                {folder.name} - {folder.size ? `Size: ${folder.size} bytes` : 'No size data'} - {folder.type}
+                                <ul>
+                                    {folder.permissions && folder.permissions.length > 0 ? (
+                                        folder.permissions.map(permission => (
+                                            <li key={permission.id}>
+                                                {permission.grantedTo ? permission.grantedTo.user.displayName : 'Unknown'} - {permission.roles.join(", ")}
+                                            </li>
+                                        ))
+                                    ) : (
+                                        <li>No permissions data</li>
+                                    )}
+                                </ul>
+                            </li>
                         ))}
                     </ul>
                 </div>
